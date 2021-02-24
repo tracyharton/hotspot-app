@@ -1,7 +1,15 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react'
+import React, { memo, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { AnyTransaction, PendingTransaction, PaymentV1 } from '@helium/http'
-import { isEqual } from 'lodash'
+import { groupBy, isEqual } from 'lodash'
+import {
+  formatDistanceStrict,
+  fromUnixTime,
+  getTime,
+  isYesterday,
+  isToday,
+} from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import WalletViewContainer from './WalletViewContainer'
 import Box from '../../../components/Box'
 import ActivityDetails from './ActivityDetails/ActivityDetails'
@@ -11,7 +19,26 @@ import { RootState } from '../../../store/rootReducer'
 import { useAppDispatch } from '../../../store/store'
 import { fetchTxns } from '../../../store/activity/activitySlice'
 import animateTransition from '../../../utils/animateTransition'
-import { ActivityViewState, FilterKeys, FilterType } from './walletTypes'
+import {
+  ActivityViewState,
+  FilterKeys,
+  FilterType,
+  ActivitySection,
+} from './walletTypes'
+
+const now = new Date()
+const nowInSeconds = getTime(now) / 1000
+
+const getTxnTime = (txn: PendingTransaction | AnyTransaction) => {
+  let time = nowInSeconds
+
+  if ('time' in txn) {
+    time = txn.time
+  } else if ('txn' in txn && 'time' in txn.txn) {
+    time = txn.txn.time
+  }
+  return time
+}
 
 const txnsEqual = (
   left: (AnyTransaction | PendingTransaction)[],
@@ -47,8 +74,8 @@ const txnDataEqual = (
 
 const WalletScreen = () => {
   const dispatch = useAppDispatch()
-  const [transactionData, setTransactionData] = useState<AnyTransaction[]>([])
-  const [pendingTxns, setPendingTxns] = useState<PendingTransaction[]>([])
+  const { t } = useTranslation()
+  const [transactionData, setTransactionData] = useState<ActivitySection[]>([])
   const [showSkeleton, setShowSkeleton] = useState(true)
   const [activityViewState, setActivityViewState] = useState<ActivityViewState>(
     'undetermined',
@@ -88,11 +115,6 @@ const WalletScreen = () => {
   const prevVisible = usePrevious(visible)
   const prevBlockHeight = usePrevious(blockHeight)
 
-  const updateTxnData = useCallback((data: AnyTransaction[]) => {
-    animateTransition()
-    setTransactionData(data)
-  }, [])
-
   useEffect(() => {
     const preloadData = () => {
       dispatch(fetchTxns({ filter: 'all', reset: true }))
@@ -102,24 +124,35 @@ const WalletScreen = () => {
   }, [dispatch])
 
   useEffect(() => {
-    if (filter === 'pending') {
-      setTransactionData([])
-      return
-    }
-    if (txnStatus[filter] === 'pending' || txnStatus[filter] === 'idle') {
-      return
-    }
+    const allData = [
+      ...txnData[filter],
+      ...(filter !== 'pending' ? txnData.pending : []),
+    ]
 
-    updateTxnData(txnData[filter])
-  }, [txnData, filter, txnStatus, updateTxnData])
+    const groupedByDistance = groupBy(allData, (txn) => {
+      const time = getTxnTime(txn)
+      const date = fromUnixTime(time)
+
+      if (isToday(date)) {
+        return t('generic.today')
+      }
+      if (isYesterday(date)) {
+        return t('generic.yesterday')
+      }
+      return formatDistanceStrict(fromUnixTime(time), now)
+    })
+
+    setTransactionData(
+      Object.keys(groupedByDistance)
+        .map((k) => ({
+          data: groupedByDistance[k],
+          title: k,
+        }))
+        .sort((a, b) => getTxnTime(b.data[0]) - getTxnTime(a.data[0])),
+    )
+  }, [txnData, filter, t])
 
   useEffect(() => {}, [showSkeleton, activityViewState])
-
-  useEffect(() => {
-    if (!txnData.pending.length && !pendingTxns.length) return
-
-    setPendingTxns(txnData.pending)
-  }, [pendingTxns, txnData.pending])
 
   useEffect(() => {
     // once you have activity, you always have activity
@@ -213,7 +246,6 @@ const WalletScreen = () => {
       <Box flex={1} backgroundColor="primaryBackground">
         <WalletViewContainer
           txns={transactionData}
-          pendingTxns={pendingTxns}
           filter={filter}
           activityViewState={activityViewState}
           showSkeleton={showSkeleton}

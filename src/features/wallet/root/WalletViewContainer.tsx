@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import BottomSheet from '@gorhom/bottom-sheet'
 import Qr from '@assets/images/qr.svg'
-import { AnyTransaction, PendingTransaction } from '@helium/http'
 import Box from '../../../components/Box'
 import Text from '../../../components/Text'
 import BalanceCard from './BalanceCard/BalanceCard'
@@ -16,15 +15,14 @@ import { triggerNavHaptic } from '../../../utils/haptic'
 import TouchableOpacityBox from '../../../components/TouchableOpacityBox'
 import WalletIntroCarousel from './WalletIntroCarousel'
 import { Loading } from '../../../store/activity/activitySlice'
-import { ActivityViewState, FilterType } from './walletTypes'
+import { ActivitySection, ActivityViewState, FilterType } from './walletTypes'
 import WalletView from './WalletView'
 
 type Props = {
   layout: WalletLayout
   animationPoints: WalletAnimationPoints
   sendSnapPoints: number[]
-  txns: AnyTransaction[]
-  pendingTxns: PendingTransaction[]
+  txns: ActivitySection[]
   filter: FilterType
   txnTypeStatus: Loading
   showSkeleton: boolean
@@ -36,7 +34,6 @@ const WalletViewContainer = ({
   animationPoints,
   sendSnapPoints,
   txns,
-  pendingTxns,
   filter,
   txnTypeStatus,
   showSkeleton,
@@ -106,7 +103,6 @@ const WalletViewContainer = ({
           activityViewState={activityViewState}
           showSkeleton={showSkeleton}
           txns={txns}
-          pendingTxns={pendingTxns}
           filter={filter}
           txnTypeStatus={txnTypeStatus}
           setActivityCardIndex={setActivityCardIndex}

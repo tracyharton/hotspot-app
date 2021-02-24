@@ -9,10 +9,9 @@ import React, {
 } from 'react'
 import BottomSheet from '@gorhom/bottom-sheet'
 import Animated from 'react-native-reanimated'
-import { AnyTransaction, PendingTransaction } from '@helium/http'
 import { WalletAnimationPoints } from '../walletLayout'
 import ActivityCardHeader from './ActivityCardHeader'
-import { FilterType } from '../walletTypes'
+import { ActivitySection, FilterType } from '../walletTypes'
 import ActivityCardListView from './ActivityCardListView'
 import ActivityListSkeletonView from './ActivityListSkeletonView'
 
@@ -20,8 +19,7 @@ type Props = {
   animationPoints: WalletAnimationPoints
   animatedIndex?: Animated.SharedValue<number>
   onChange?: (index: number) => void
-  txns: AnyTransaction[]
-  pendingTxns: PendingTransaction[]
+  txns: ActivitySection[]
   filter: FilterType
   hasNoResults: boolean
   showSkeleton: boolean
@@ -33,7 +31,6 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
     animatedIndex,
     onChange,
     txns,
-    pendingTxns,
     filter,
     hasNoResults,
     showSkeleton,
@@ -56,19 +53,6 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
       sheet.current?.close()
     },
   }))
-
-  const getData = useMemo(() => {
-    let data: (AnyTransaction | PendingTransaction)[] = txns
-    if (filter === 'pending') {
-      data = pendingTxns
-    }
-
-    if (filter === 'all') {
-      data = [...pendingTxns, ...txns]
-    }
-
-    return data
-  }, [filter, pendingTxns, txns])
 
   const header = useCallback(() => <ActivityCardHeader filter={filter} />, [
     filter,
@@ -93,7 +77,7 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
       {showSkeleton ? (
         <ActivityListSkeletonView />
       ) : (
-        <ActivityCardListView data={getData} hasNoResults={hasNoResults} />
+        <ActivityCardListView data={txns} hasNoResults={hasNoResults} />
       )}
     </BottomSheet>
   )

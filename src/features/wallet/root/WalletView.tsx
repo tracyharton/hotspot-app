@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated'
-import { AnyTransaction, PendingTransaction } from '@helium/http'
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import Box from '../../../components/Box'
 import BarChart from '../../../components/BarChart'
@@ -17,15 +16,14 @@ import {
   WalletAnimationPoints,
   WalletLayout,
 } from './walletLayout'
-import { ActivityViewState, FilterType } from './walletTypes'
+import { ActivitySection, ActivityViewState, FilterType } from './walletTypes'
 
 type Props = {
   layout: WalletLayout
   animationPoints: WalletAnimationPoints
   showSkeleton: boolean
   activityViewState: ActivityViewState
-  txns: AnyTransaction[]
-  pendingTxns: PendingTransaction[]
+  txns: ActivitySection[]
   filter: FilterType
   setActivityCardIndex: (index: number) => void
   onReceivePress: () => void
@@ -39,7 +37,6 @@ const WalletView = ({
   showSkeleton,
   activityViewState,
   txns,
-  pendingTxns,
   filter,
   setActivityCardIndex,
   onReceivePress,
@@ -51,12 +48,9 @@ const WalletView = ({
 
   useEffect(() => {
     const noResults =
-      activityViewState === 'activity' &&
-      !showSkeleton &&
-      pendingTxns.length === 0 &&
-      txns.length === 0
+      activityViewState === 'activity' && !showSkeleton && txns.length === 0
     setHasNoResults(noResults)
-  }, [activityViewState, pendingTxns.length, showSkeleton, txns.length])
+  }, [activityViewState, showSkeleton, txns.length])
 
   const balanceCardStyles = useAnimatedStyle(
     () => ({
@@ -93,7 +87,6 @@ const WalletView = ({
         showSkeleton={showSkeleton}
         filter={filter}
         txns={txns}
-        pendingTxns={pendingTxns}
         hasNoResults={hasNoResults}
         ref={activityCardRef}
         animationPoints={animationPoints}

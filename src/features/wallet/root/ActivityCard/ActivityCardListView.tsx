@@ -1,55 +1,26 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import React, { useCallback, memo, useMemo } from 'react'
 import { useAsync } from 'react-async-hook'
-import {
-  AnyTransaction,
-  AddGatewayV1,
-  PendingTransaction,
-  AssertLocationV1,
-} from '@helium/http'
-import animalName from 'angry-purple-tiger'
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet'
-import ActivityItem, { ACTIVITY_ITEM_ROW_HEIGHT } from './ActivityItem'
+import { AnyTransaction, PendingTransaction } from '@helium/http'
+import { BottomSheetSectionList } from '@gorhom/bottom-sheet'
 import { getSecureItem } from '../../../../utils/secureAccount'
 import activitySlice from '../../../../store/activity/activitySlice'
 import { useAppDispatch } from '../../../../store/store'
 import { useSpacing } from '../../../../theme/themeHooks'
-import useActivityItem from '../useActivityItem'
 import ActivityCardLoading from './ActivityCardLoading'
+import { ActivitySection } from '../walletTypes'
+import Text from '../../../../components/Text'
+import Box from '../../../../components/Box'
 
 type Props = {
   hasNoResults: boolean
-  data: (AnyTransaction | PendingTransaction)[]
+  data: ActivitySection[]
 }
 
 const ActivityCardListView = ({ data, hasNoResults }: Props) => {
   const { m } = useSpacing()
   const dispatch = useAppDispatch()
-  const { result: address, loading } = useAsync(getSecureItem, ['address'])
-  const { backgroundColor, title, listIcon, amount, time } = useActivityItem(
-    address || '',
-  )
-
-  const handleActivityItemPressed = useCallback(
-    (item: AnyTransaction | PendingTransaction) => () => {
-      dispatch(activitySlice.actions.setDetailTxn(item))
-    },
-    [dispatch],
-  )
-
-  const getSubtitle = useCallback(
-    (item: AnyTransaction | PendingTransaction) => {
-      if (item instanceof AssertLocationV1 || item instanceof AddGatewayV1) {
-        return animalName(item.gateway)
-      }
-      if (item?.txn?.gateway) {
-        return animalName(item.txn.gateway)
-      }
-      return amount(item)
-    },
-    [amount],
-  )
-
+  const { loading } = useAsync(getSecureItem, ['address'])
   const requestMore = useCallback(() => {
     dispatch(activitySlice.actions.requestMoreActivity())
   }, [dispatch])
@@ -59,51 +30,25 @@ const ActivityCardListView = ({ data, hasNoResults }: Props) => {
     index: number
   }
 
-  const renderItem = useCallback(
-    ({ item, index }: Item) => {
-      const isLast = () => {
-        return !!data && index === data?.length - 1
-      }
-
-      return (
-        <ActivityItem
-          hash={(item as AddGatewayV1).hash}
-          handlePress={handleActivityItemPressed(item)}
-          isFirst={index === 0}
-          isLast={isLast()}
-          backgroundColor={backgroundColor(item)}
-          icon={listIcon(item)}
-          title={title(item)}
-          subtitle={getSubtitle(item)}
-          time={time(item)}
-        />
-      )
-    },
-    [
-      backgroundColor,
-      data,
-      getSubtitle,
-      handleActivityItemPressed,
-      listIcon,
-      time,
-      title,
-    ],
-  )
+  const renderItem = useCallback(({ item }: Item) => {
+    return (
+      <Text
+        variant="body1"
+        color="black"
+        numberOfLines={1}
+        ellipsizeMode="middle"
+        margin="s"
+      >
+        {item.hash}
+      </Text>
+    )
+  }, [])
 
   const keyExtractor = useCallback(
     (item: AnyTransaction | PendingTransaction) => {
       const txn = item as PendingTransaction
       return `${txn.hash}${txn.status}`
     },
-    [],
-  )
-
-  const getItemLayout = useCallback(
-    (_data, index) => ({
-      length: ACTIVITY_ITEM_ROW_HEIGHT,
-      offset: ACTIVITY_ITEM_ROW_HEIGHT * index,
-      index,
-    }),
     [],
   )
 
@@ -116,16 +61,27 @@ const ActivityCardListView = ({ data, hasNoResults }: Props) => {
     [hasNoResults],
   )
 
+  const sectionHeader = useCallback(
+    ({ section: { title: sectionTitle } }) => (
+      <Box width="100%" backgroundColor="white" paddingVertical="m">
+        <Text variant="subtitle" color="black">
+          {sectionTitle}
+        </Text>
+      </Box>
+    ),
+    [],
+  )
+
   if (loading) return null
 
   return (
-    <BottomSheetFlatList
-      data={data}
-      renderItem={renderItem}
+    <BottomSheetSectionList
+      sections={data}
       keyExtractor={keyExtractor}
-      contentContainerStyle={contentContainerStyle}
       ListFooterComponent={footer}
-      getItemLayout={getItemLayout}
+      renderSectionHeader={sectionHeader}
+      renderItem={renderItem}
+      contentContainerStyle={contentContainerStyle}
       onEndReached={requestMore}
     />
   )

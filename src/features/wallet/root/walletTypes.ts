@@ -1,3 +1,5 @@
+import { AnyTransaction, PendingTransaction } from '@helium/http'
+
 export const FilterKeys = [
   'all',
   'mining',
@@ -16,3 +18,8 @@ export const Filters = {
 } as Record<FilterType, string[]>
 
 export type ActivityViewState = 'undetermined' | 'no_activity' | 'activity'
+
+export type ActivitySection = {
+  data: (AnyTransaction | PendingTransaction)[]
+  title: string
+}

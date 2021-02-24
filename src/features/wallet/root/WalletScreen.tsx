@@ -22,7 +22,14 @@ const WalletScreen = () => {
   )
 
   const {
-    activity: { txns, filter, detailTxn, requestMore },
+    activity: {
+      txnData,
+      txnStatus,
+      txnInitLoaded,
+      filter,
+      detailTxn,
+      requestMore,
+    },
     heliumData: { blockHeight },
   } = useSelector((state: RootState) => state)
 
@@ -49,10 +56,10 @@ const WalletScreen = () => {
       setTransactionData([])
       return
     }
-    if (txns[filter].status === 'pending' || txns[filter].status === 'idle') {
+    if (txnStatus[filter] === 'pending' || txnStatus[filter] === 'idle') {
       return
     }
-    const { data } = txns[filter]
+    const data = txnData[filter]
     if (data.length !== transactionData.length) {
       updateTxnData(data)
     } else if (data.length) {
@@ -69,22 +76,24 @@ const WalletScreen = () => {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txns[filter]])
+  }, [txnData[filter]])
 
   useEffect(() => {}, [showSkeleton, activityViewState])
 
   useEffect(() => {
-    if (!txns.pending.data.length && !pendingTxns.length) return
+    if (!txnData.pending.length && !pendingTxns.length) return
 
-    setPendingTxns(txns.pending.data)
-  }, [pendingTxns, txns.pending.data])
+    setPendingTxns(txnData.pending)
+  }, [pendingTxns, txnData.pending])
 
   useEffect(() => {
     // once you have activity, you always have activity
     if (activityViewState === 'activity') return
 
-    const { hasInitialLoad: allLoaded, data: allData } = txns.all
-    const { hasInitialLoad: pendingLoaded, data: pendingData } = txns.pending
+    const allLoaded = txnInitLoaded.all
+    const allData = txnData.all
+    const pendingLoaded = txnInitLoaded.pending
+    const pendingData = txnData.pending
 
     if (!allLoaded || !pendingLoaded) return
 
@@ -97,11 +106,16 @@ const WalletScreen = () => {
     ) {
       setActivityViewState('no_activity')
     }
-  }, [filter, activityViewState, txns])
+  }, [
+    activityViewState,
+    txnData.all,
+    txnData.pending,
+    txnInitLoaded.all,
+    txnInitLoaded.pending,
+  ])
 
   useEffect(() => {
-    const nextShowSkeleton =
-      !txns[filter].hasInitialLoad || !txns.pending.hasInitialLoad
+    const nextShowSkeleton = !txnInitLoaded[filter] || !txnInitLoaded.pending
 
     if (nextShowSkeleton !== showSkeleton) {
       if (visible) {
@@ -109,7 +123,7 @@ const WalletScreen = () => {
       }
       setShowSkeleton(nextShowSkeleton)
     }
-  }, [filter, showSkeleton, txns, visible])
+  }, [filter, showSkeleton, txnInitLoaded, visible])
 
   useEffect(() => {
     // Fetch pending txns on an interval of 5s
@@ -138,25 +152,26 @@ const WalletScreen = () => {
     }
 
     // if filter changes & there's no txn data for that filter, request
-    if (txns[filter].data.length === 0 && txns[filter].status === 'idle') {
+    if (txnData[filter].length === 0 && txnStatus[filter] === 'idle') {
       dispatch(fetchTxns({ filter }))
     }
   }, [
-    visible,
-    prevVisible,
     blockHeight,
-    prevBlockHeight,
-    filter,
-    txns,
     dispatch,
+    filter,
+    prevBlockHeight,
+    prevVisible,
+    txnData,
+    txnStatus,
+    visible,
   ])
 
   useEffect(() => {
     if (!visible) return
-    if (requestMore && txns[filter].status !== 'pending') {
+    if (requestMore && txnStatus[filter] !== 'pending') {
       dispatch(fetchTxns({ filter }))
     }
-  }, [dispatch, filter, requestMore, txns, visible])
+  }, [dispatch, filter, requestMore, txnStatus, visible])
 
   return (
     <>

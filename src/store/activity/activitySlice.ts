@@ -7,24 +7,26 @@ import { FilterType } from '../../features/wallet/root/walletTypes'
 export type Loading = 'idle' | 'pending' | 'fulfilled' | 'rejected'
 
 export type ActivityState = {
-  txns: {
-    all: { data: AnyTransaction[]; status: Loading; hasInitialLoad: boolean }
-    hotspot: {
-      data: AnyTransaction[]
-      status: Loading
-      hasInitialLoad: boolean
-    }
-    mining: { data: AnyTransaction[]; status: Loading; hasInitialLoad: boolean }
-    payment: {
-      data: AnyTransaction[]
-      status: Loading
-      hasInitialLoad: boolean
-    }
-    pending: {
-      data: PendingTransaction[]
-      status: Loading
-      hasInitialLoad: boolean
-    }
+  txnData: {
+    all: AnyTransaction[]
+    hotspot: AnyTransaction[]
+    mining: AnyTransaction[]
+    payment: AnyTransaction[]
+    pending: PendingTransaction[]
+  }
+  txnStatus: {
+    all: Loading
+    hotspot: Loading
+    mining: Loading
+    payment: Loading
+    pending: Loading
+  }
+  txnInitLoaded: {
+    all: boolean
+    hotspot: boolean
+    mining: boolean
+    payment: boolean
+    pending: boolean
   }
   filter: FilterType
   detailTxn?: AnyTransaction | PendingTransaction
@@ -32,12 +34,26 @@ export type ActivityState = {
 }
 
 const initialState: ActivityState = {
-  txns: {
-    all: { data: [], status: 'idle', hasInitialLoad: false },
-    hotspot: { data: [], status: 'idle', hasInitialLoad: false },
-    mining: { data: [], status: 'idle', hasInitialLoad: false },
-    payment: { data: [], status: 'idle', hasInitialLoad: false },
-    pending: { data: [], status: 'idle', hasInitialLoad: false },
+  txnData: {
+    all: [],
+    hotspot: [],
+    mining: [],
+    payment: [],
+    pending: [],
+  },
+  txnStatus: {
+    all: 'idle',
+    hotspot: 'idle',
+    mining: 'idle',
+    payment: 'idle',
+    pending: 'idle',
+  },
+  txnInitLoaded: {
+    all: false,
+    hotspot: false,
+    mining: false,
+    payment: false,
+    pending: false,
   },
   filter: 'all',
   requestMore: false,
@@ -70,12 +86,12 @@ const activitySlice = createSlice({
       state.requestMore = true
     },
     resetTxnStatuses: (state, action: PayloadAction<FilterType>) => {
-      Object.keys(state.txns).forEach((key) => {
+      Object.keys(state.txnStatus).forEach((key) => {
         const filterType = key as FilterType
         if (filterType !== 'pending' && filterType !== action.payload) {
           // Don't reset pending, it updates on an interval, and we clear it manually
           // Don't reset the requested filter type. We want that one to stay pending
-          state.txns[filterType].status = 'idle'
+          state.txnStatus[filterType] = 'idle'
         }
       })
     },
@@ -83,7 +99,7 @@ const activitySlice = createSlice({
       state,
       action: PayloadAction<PendingTransaction>,
     ) => {
-      state.txns.pending.data.push(action.payload)
+      state.txnData.pending.push(action.payload)
     },
     setDetailTxn: (
       state,
@@ -109,7 +125,7 @@ const activitySlice = createSlice({
           },
         },
       ) => {
-        state.txns[filter].status = 'pending'
+        state.txnStatus[filter] = 'pending'
       },
     )
     builder.addCase(
@@ -122,11 +138,11 @@ const activitySlice = createSlice({
           },
         },
       ) => {
-        if (!state.txns[filter].hasInitialLoad) {
-          state.txns[filter].hasInitialLoad = true
+        if (!state.txnInitLoaded[filter]) {
+          state.txnInitLoaded[filter] = true
         }
         state.requestMore = false
-        state.txns[filter].status = 'rejected'
+        state.txnStatus[filter] = 'rejected'
       },
     )
     builder.addCase(
@@ -141,17 +157,17 @@ const activitySlice = createSlice({
         },
       ) => {
         state.requestMore = false
-        state.txns[filter].status = 'fulfilled'
-        if (!state.txns[filter].hasInitialLoad) {
-          state.txns[filter].hasInitialLoad = true
+        state.txnStatus[filter] = 'fulfilled'
+        if (!state.txnInitLoaded[filter]) {
+          state.txnInitLoaded[filter] = true
         }
 
         if (reset && state.filter === filter) {
-          Object.keys(state.txns).forEach((key) => {
+          Object.keys(state.txnData).forEach((key) => {
             const filterType = key as FilterType
             if (filterType !== 'pending') {
               // Don't reset pending, we will clear it manually
-              state.txns[filterType].data = []
+              state.txnData[filterType] = []
             }
           })
         }
@@ -161,22 +177,22 @@ const activitySlice = createSlice({
         if (filter === 'pending') {
           const pending = payload as PendingTransaction[]
           const filtered = pending.filter((txn) => txn.status === 'pending')
-          const joined = unionBy(filtered, state.txns.pending.data, 'hash')
-          state.txns.pending.data = joined
+          const joined = unionBy(filtered, state.txnData.pending, 'hash')
+          state.txnData.pending = joined
         } else {
           const nextTxns = [
-            ...state.txns[filter].data,
+            ...state.txnData[filter],
             ...(payload as AnyTransaction[]),
           ]
-          state.txns[filter].data = nextTxns
+          state.txnData[filter] = nextTxns
 
           // remove any pending txns with the same hash
           const nextPending = differenceBy(
-            state.txns.pending.data,
+            state.txnData.pending,
             nextTxns,
             'hash',
           )
-          state.txns.pending.data = nextPending
+          state.txnData.pending = nextPending
         }
       },
     )

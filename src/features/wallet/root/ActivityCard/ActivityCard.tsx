@@ -99,13 +99,4 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
   )
 })
 
-export default memo(ActivityCard, (prev, next) => {
-  return (
-    prev.filter === next.filter &&
-    prev.onChange === next.onChange &&
-    prev.txns === next.txns &&
-    prev.pendingTxns === next.pendingTxns &&
-    prev.hasNoResults === next.hasNoResults &&
-    prev.showSkeleton === next.showSkeleton
-  )
-})
+export default memo(ActivityCard)

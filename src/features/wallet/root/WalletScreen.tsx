@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { AnyTransaction, PendingTransaction, PaymentV1 } from '@helium/http'
+import { isEqual } from 'lodash'
 import WalletViewContainer from './WalletViewContainer'
 import Box from '../../../components/Box'
 import ActivityDetails from './ActivityDetails/ActivityDetails'
@@ -10,7 +11,39 @@ import { RootState } from '../../../store/rootReducer'
 import { useAppDispatch } from '../../../store/store'
 import { fetchTxns } from '../../../store/activity/activitySlice'
 import animateTransition from '../../../utils/animateTransition'
-import { ActivityViewState } from './walletTypes'
+import { ActivityViewState, FilterKeys, FilterType } from './walletTypes'
+
+const txnsEqual = (
+  left: (AnyTransaction | PendingTransaction)[],
+  right: (AnyTransaction | PendingTransaction)[],
+) => {
+  if (left.length !== right.length) {
+    return false
+  }
+  if (left.length) {
+    left.some((txn, index) => {
+      const prevTxn = txn as PaymentV1
+      const nextTxn = right[index] as PaymentV1
+
+      const hashEqual = nextTxn.hash === prevTxn.hash
+      if (!hashEqual) {
+        return false
+      }
+      return hashEqual
+    })
+  }
+  return true
+}
+
+const txnDataEqual = (
+  left: Record<FilterType, (AnyTransaction | PendingTransaction)[]>,
+  right: Record<FilterType, (AnyTransaction | PendingTransaction)[]>,
+) =>
+  FilterKeys.some((k) => {
+    const filteredLeft = left[k]
+    const filteredRight = right[k]
+    return txnsEqual(filteredLeft, filteredRight)
+  })
 
 const WalletScreen = () => {
   const dispatch = useAppDispatch()
@@ -21,17 +54,34 @@ const WalletScreen = () => {
     'undetermined',
   )
 
-  const {
-    activity: {
-      txnData,
-      txnStatus,
-      txnInitLoaded,
-      filter,
-      detailTxn,
-      requestMore,
-    },
-    heliumData: { blockHeight },
-  } = useSelector((state: RootState) => state)
+  const blockHeight = useSelector(
+    (state: RootState) => state.heliumData.blockHeight,
+    isEqual,
+  )
+  const detailTxn = useSelector(
+    (state: RootState) => state.activity.detailTxn,
+    isEqual,
+  )
+  const requestMore = useSelector(
+    (state: RootState) => state.activity.requestMore,
+    isEqual,
+  )
+  const filter = useSelector(
+    (state: RootState) => state.activity.filter,
+    isEqual,
+  )
+  const txnStatus = useSelector(
+    (state: RootState) => state.activity.txnStatus,
+    isEqual,
+  )
+  const txnInitLoaded = useSelector(
+    (state: RootState) => state.activity.txnInitLoaded,
+    isEqual,
+  )
+  const txnData = useSelector(
+    (state: RootState) => state.activity.txnData,
+    (left, right) => txnDataEqual(left, right),
+  )
 
   const interval = useRef<NodeJS.Timeout>()
   const visible = useVisible()
@@ -59,24 +109,9 @@ const WalletScreen = () => {
     if (txnStatus[filter] === 'pending' || txnStatus[filter] === 'idle') {
       return
     }
-    const data = txnData[filter]
-    if (data.length !== transactionData.length) {
-      updateTxnData(data)
-    } else if (data.length) {
-      data.some((txn, index) => {
-        const prevTxn = txn as PaymentV1
-        const nextTxn = transactionData[index] as PaymentV1
 
-        const hashEqual = nextTxn.hash === prevTxn.hash
-        if (!hashEqual) {
-          // data has changed update
-          updateTxnData(data)
-        }
-        return hashEqual
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txnData[filter]])
+    updateTxnData(txnData[filter])
+  }, [txnData, filter, txnStatus, updateTxnData])
 
   useEffect(() => {}, [showSkeleton, activityViewState])
 

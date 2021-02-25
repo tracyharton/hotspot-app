@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React, { useCallback, memo, useMemo } from 'react'
+import React, { useCallback, memo, useMemo, useState, useEffect } from 'react'
 import { useAsync } from 'react-async-hook'
 import { AnyTransaction, PendingTransaction } from '@helium/http'
 import { BottomSheetSectionList } from '@gorhom/bottom-sheet'
@@ -11,25 +11,35 @@ import ActivityCardLoading from './ActivityCardLoading'
 import { ActivitySection } from '../walletTypes'
 import Text from '../../../../components/Text'
 import Box from '../../../../components/Box'
+import useActivityItem from '../useActivityItem'
+import useVisible from '../../../../utils/useVisible'
 
 type Props = {
   hasNoResults: boolean
-  data: ActivitySection[]
+  data: (PendingTransaction | AnyTransaction)[]
 }
 
 const ActivityCardListView = ({ data, hasNoResults }: Props) => {
   const { m } = useSpacing()
+  const { loading, result: address } = useAsync(getSecureItem, ['address'])
+  const { groupAndSortTxns } = useActivityItem(address || '')
   const dispatch = useAppDispatch()
-  const { loading } = useAsync(getSecureItem, ['address'])
+  const [transactionData, setTransactionData] = useState<ActivitySection[]>([])
+  const visible = useVisible()
+
   const requestMore = useCallback(() => {
     dispatch(activitySlice.actions.requestMoreActivity())
   }, [dispatch])
 
+  useEffect(() => {
+    const nextTxnData = groupAndSortTxns(data)
+    setTransactionData(nextTxnData)
+  }, [data, groupAndSortTxns, visible])
+
   type Item = {
-    item: AnyTransaction | PendingTransaction
+    item: string
     index: number
   }
-
   const renderItem = useCallback(({ item }: Item) => {
     return (
       <Text
@@ -39,16 +49,13 @@ const ActivityCardListView = ({ data, hasNoResults }: Props) => {
         ellipsizeMode="middle"
         margin="s"
       >
-        {item.hash}
+        {item}
       </Text>
     )
   }, [])
 
   const keyExtractor = useCallback(
-    (item: AnyTransaction | PendingTransaction) => {
-      const txn = item as PendingTransaction
-      return `${txn.hash}${txn.status}`
-    },
+    (item: string, index: number) => `${item}.${index}`,
     [],
   )
 
@@ -76,7 +83,7 @@ const ActivityCardListView = ({ data, hasNoResults }: Props) => {
 
   return (
     <BottomSheetSectionList
-      sections={data}
+      sections={transactionData}
       keyExtractor={keyExtractor}
       ListFooterComponent={footer}
       renderSectionHeader={sectionHeader}

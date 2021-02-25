@@ -20,6 +20,19 @@ export const Filters = {
 export type ActivityViewState = 'undetermined' | 'no_activity' | 'activity'
 
 export type ActivitySection = {
-  data: (AnyTransaction | PendingTransaction)[]
+  transactions: Record<string, (AnyTransaction | PendingTransaction)[]>
+  data: string[]
   title: string
 }
+
+export const TxnTypeKeys = [
+  'rewards_v1',
+  'payment_v1',
+  'payment_v2',
+  'add_gateway_v1',
+  'assert_location_v1',
+  'transfer_hotspot_v1',
+  'token_burn_v1',
+] as const
+
+export type TxnType = typeof TxnTypeKeys[number]

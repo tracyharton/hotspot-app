@@ -1,15 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { AnyTransaction, PendingTransaction, PaymentV1 } from '@helium/http'
-import { groupBy, isEqual } from 'lodash'
-import {
-  formatDistanceStrict,
-  fromUnixTime,
-  getTime,
-  isYesterday,
-  isToday,
-} from 'date-fns'
-import { useTranslation } from 'react-i18next'
+import { isEqual } from 'lodash'
 import WalletViewContainer from './WalletViewContainer'
 import Box from '../../../components/Box'
 import ActivityDetails from './ActivityDetails/ActivityDetails'
@@ -19,26 +11,7 @@ import { RootState } from '../../../store/rootReducer'
 import { useAppDispatch } from '../../../store/store'
 import { fetchTxns } from '../../../store/activity/activitySlice'
 import animateTransition from '../../../utils/animateTransition'
-import {
-  ActivityViewState,
-  FilterKeys,
-  FilterType,
-  ActivitySection,
-} from './walletTypes'
-
-const now = new Date()
-const nowInSeconds = getTime(now) / 1000
-
-const getTxnTime = (txn: PendingTransaction | AnyTransaction) => {
-  let time = nowInSeconds
-
-  if ('time' in txn) {
-    time = txn.time
-  } else if ('txn' in txn && 'time' in txn.txn) {
-    time = txn.txn.time
-  }
-  return time
-}
+import { ActivityViewState, FilterKeys, FilterType } from './walletTypes'
 
 const txnsEqual = (
   left: (AnyTransaction | PendingTransaction)[],
@@ -74,8 +47,9 @@ const txnDataEqual = (
 
 const WalletScreen = () => {
   const dispatch = useAppDispatch()
-  const { t } = useTranslation()
-  const [transactionData, setTransactionData] = useState<ActivitySection[]>([])
+  const [transactionData, setTransactionData] = useState<
+    (PendingTransaction | AnyTransaction)[]
+  >([])
   const [showSkeleton, setShowSkeleton] = useState(true)
   const [activityViewState, setActivityViewState] = useState<ActivityViewState>(
     'undetermined',
@@ -116,43 +90,23 @@ const WalletScreen = () => {
   const prevBlockHeight = usePrevious(blockHeight)
 
   useEffect(() => {
+    const updateTxns = async () => {
+      const allData = [
+        ...txnData[filter],
+        ...(filter !== 'pending' ? txnData.pending : []),
+      ]
+      setTransactionData(allData)
+    }
+    updateTxns()
+  }, [filter, txnData, dispatch])
+
+  useEffect(() => {
     const preloadData = () => {
       dispatch(fetchTxns({ filter: 'all', reset: true }))
       dispatch(fetchTxns({ filter: 'pending' }))
     }
     preloadData()
   }, [dispatch])
-
-  useEffect(() => {
-    const allData = [
-      ...txnData[filter],
-      ...(filter !== 'pending' ? txnData.pending : []),
-    ]
-
-    const groupedByDistance = groupBy(allData, (txn) => {
-      const time = getTxnTime(txn)
-      const date = fromUnixTime(time)
-
-      if (isToday(date)) {
-        return t('generic.today')
-      }
-      if (isYesterday(date)) {
-        return t('generic.yesterday')
-      }
-      return formatDistanceStrict(fromUnixTime(time), now)
-    })
-
-    setTransactionData(
-      Object.keys(groupedByDistance)
-        .map((k) => ({
-          data: groupedByDistance[k],
-          title: k,
-        }))
-        .sort((a, b) => getTxnTime(b.data[0]) - getTxnTime(a.data[0])),
-    )
-  }, [txnData, filter, t])
-
-  useEffect(() => {}, [showSkeleton, activityViewState])
 
   useEffect(() => {
     // once you have activity, you always have activity

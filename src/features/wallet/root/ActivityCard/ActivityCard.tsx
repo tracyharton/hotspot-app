@@ -9,9 +9,10 @@ import React, {
 } from 'react'
 import BottomSheet from '@gorhom/bottom-sheet'
 import Animated from 'react-native-reanimated'
+import { AnyTransaction, PendingTransaction } from '@helium/http'
 import { WalletAnimationPoints } from '../walletLayout'
 import ActivityCardHeader from './ActivityCardHeader'
-import { ActivitySection, FilterType } from '../walletTypes'
+import { FilterType } from '../walletTypes'
 import ActivityCardListView from './ActivityCardListView'
 import ActivityListSkeletonView from './ActivityListSkeletonView'
 
@@ -19,7 +20,7 @@ type Props = {
   animationPoints: WalletAnimationPoints
   animatedIndex?: Animated.SharedValue<number>
   onChange?: (index: number) => void
-  txns: ActivitySection[]
+  txns: (AnyTransaction | PendingTransaction)[]
   filter: FilterType
   hasNoResults: boolean
   showSkeleton: boolean

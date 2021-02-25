@@ -6,24 +6,24 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated'
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
+import { AnyTransaction, PendingTransaction } from '@helium/http'
 import Box from '../../../components/Box'
 import BarChart from '../../../components/BarChart'
 import BalanceCard from './BalanceCard/BalanceCard'
 import ActivityCard from './ActivityCard/ActivityCard'
-
 import {
   withWalletLayout,
   WalletAnimationPoints,
   WalletLayout,
 } from './walletLayout'
-import { ActivitySection, ActivityViewState, FilterType } from './walletTypes'
+import { ActivityViewState, FilterType } from './walletTypes'
 
 type Props = {
   layout: WalletLayout
   animationPoints: WalletAnimationPoints
   showSkeleton: boolean
   activityViewState: ActivityViewState
-  txns: ActivitySection[]
+  txns: (PendingTransaction | AnyTransaction)[]
   filter: FilterType
   setActivityCardIndex: (index: number) => void
   onReceivePress: () => void

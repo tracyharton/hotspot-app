@@ -1,5 +1,13 @@
 import React, { useCallback } from 'react'
-import { format, formatDistanceToNow, fromUnixTime } from 'date-fns'
+import {
+  format,
+  formatDistanceToNow,
+  formatDistanceStrict,
+  fromUnixTime,
+  getTime,
+  isYesterday,
+  isToday,
+} from 'date-fns'
 import {
   AddGatewayV1,
   AnyTransaction,
@@ -13,7 +21,7 @@ import {
 } from '@helium/http'
 import { useTranslation } from 'react-i18next'
 import Balance, { DataCredits, NetworkTokens } from '@helium/currency'
-import { startCase } from 'lodash'
+import { startCase, groupBy } from 'lodash'
 import { useColors } from '../../../theme/themeHooks'
 import { isPayer } from '../../../utils/transactions'
 import Rewards from '../../../assets/images/rewards.svg'
@@ -25,17 +33,20 @@ import Location from '../../../assets/images/location.svg'
 import Burn from '../../../assets/images/burn.svg'
 import shortLocale from '../../../utils/formatDistance'
 import { decimalSeparator, groupSeparator, locale } from '../../../utils/i18n'
+import { TxnType, TxnTypeKeys } from './walletTypes'
 
-export const TxnTypeKeys = [
-  'rewards_v1',
-  'payment_v1',
-  'payment_v2',
-  'add_gateway_v1',
-  'assert_location_v1',
-  'transfer_hotspot_v1',
-  'token_burn_v1',
-] as const
-type TxnType = typeof TxnTypeKeys[number]
+const now = new Date()
+const nowInSeconds = getTime(now) / 1000
+const getTxnTime = (txn: PendingTransaction | AnyTransaction) => {
+  let time = nowInSeconds
+
+  if ('time' in txn) {
+    time = txn.time
+  } else if ('txn' in txn && 'time' in txn.txn) {
+    time = txn.txn.time
+  }
+  return time
+}
 
 const useActivityItem = (address: string) => {
   const colors = useColors()
@@ -84,7 +95,7 @@ const useActivityItem = (address: string) => {
   )
 
   const title = useCallback(
-    (item: AnyTransaction | PendingTransaction) => {
+    (item: AnyTransaction | PendingTransaction): string => {
       if (!TxnTypeKeys.find((k) => k === item.type)) {
         return startCase(item.type)
       }
@@ -314,6 +325,42 @@ const useActivityItem = (address: string) => {
     [t],
   )
 
+  const groupAndSortTxns = useCallback(
+    (data: (PendingTransaction | AnyTransaction)[]) => {
+      const groupedByDistance = groupBy(data, (txn) => {
+        const txnTime = getTxnTime(txn)
+        const date = fromUnixTime(txnTime)
+
+        if (isToday(date)) {
+          return t('generic.today')
+        }
+        if (isYesterday(date)) {
+          return t('generic.yesterday')
+        }
+        return formatDistanceStrict(fromUnixTime(txnTime), now)
+      })
+      const groupedAndSorted = Object.keys(groupedByDistance)
+        .map((k) => {
+          const transactions = groupBy(groupedByDistance[k], (txn) =>
+            title(txn),
+          )
+          return {
+            transactions,
+            data: Object.keys(transactions),
+            title: k,
+          }
+        })
+        .sort(({ transactions: leftTxns }, { transactions: rightTxns }) => {
+          const leftTxn = leftTxns[Object.keys(leftTxns)[0]][0]
+          const rightTxn = rightTxns[Object.keys(rightTxns)[0]][0]
+          return getTxnTime(rightTxn) - getTxnTime(leftTxn)
+        })
+
+      return groupedAndSorted
+    },
+    [t, title],
+  )
+
   return {
     backgroundColor,
     backgroundColorKey,
@@ -324,6 +371,7 @@ const useActivityItem = (address: string) => {
     time,
     isFee,
     fee,
+    groupAndSortTxns,
   }
 }
 

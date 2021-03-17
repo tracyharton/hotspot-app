@@ -12,7 +12,12 @@ const makeRequest = async (url: string, opts: RequestInit) => {
       throw new Error('no token')
     }
 
-    const route = [Config.WALLET_API_BASE_URL, url].join('/')
+    let baseUrl = Config.WALLET_API_BASE_URL
+    // TODO: get rid of this
+    if (url.includes('disco') && Config.WALLET_API_BASE_URL_TEST) {
+      baseUrl = Config.WALLET_API_BASE_URL_TEST
+    }
+    const route = [baseUrl, url].join('/')
 
     const response = await fetch(route, {
       ...opts,
@@ -33,7 +38,9 @@ const makeRequest = async (url: string, opts: RequestInit) => {
     const text = await response.text()
     try {
       const json = JSON.parse(text)
-      return json.data || json
+      const data = json.data || json
+      data.serverDate = response.headers.map?.date
+      return data
     } catch (err) {
       return text
     }
@@ -43,22 +50,40 @@ const makeRequest = async (url: string, opts: RequestInit) => {
   }
 }
 
-export const getWallet = async (url: string, params?: unknown) => {
+export const getWallet = async (
+  url: string,
+  params?: unknown,
+  camelCase = false,
+) => {
   let fullUrl = url
   if (params) {
     fullUrl += '?'
     fullUrl += qs.stringify(params)
   }
-  return makeRequest(fullUrl, {
+  const opts = {
     method: 'GET',
-  })
+  } as RequestInit
+  if (camelCase) {
+    opts.headers = { Accent: 'camel' }
+  }
+  return makeRequest(fullUrl, opts)
 }
 
-export const postWallet = async (url: string, data?: unknown) =>
-  makeRequest(url, {
+export const postWallet = async (
+  url: string,
+  data?: unknown,
+  camelCase = false,
+) => {
+  const opts = {
     method: 'POST',
     body: data ? JSON.stringify(data) : null,
-  })
+  } as RequestInit
+  if (camelCase) {
+    opts.headers = { Accent: 'camel' }
+  }
+
+  return makeRequest(url, opts)
+}
 
 export const deleteWallet = async (url: string, data?: unknown) =>
   makeRequest(url, {

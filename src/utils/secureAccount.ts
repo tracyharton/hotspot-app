@@ -1,6 +1,7 @@
 import { Address, Keypair, Mnemonic } from '@helium/crypto-react-native'
 import * as SecureStore from 'expo-secure-store'
 import OneSignal from 'react-native-onesignal'
+import Config from 'react-native-config'
 import * as Logger from './logger'
 
 type AccountStoreKey = BooleanKey | StringKey
@@ -34,6 +35,8 @@ export const setSecureItem = async (
 export async function getSecureItem(key: BooleanKey): Promise<boolean>
 export async function getSecureItem(key: StringKey): Promise<string | null>
 export async function getSecureItem(key: AccountStoreKey) {
+  if (key === 'address' && Config.TEST_ACCT) return Config.TEST_ACCT
+
   const item = await SecureStore.getItemAsync(key)
   if (boolKeys.find((bk) => key === bk)) {
     return item === 'true'

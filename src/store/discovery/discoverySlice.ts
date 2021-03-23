@@ -42,7 +42,7 @@ export const fetchDiscoveryById = createAsyncThunk<
   return getWallet(`discoveries/responses/${requestId}`, null, true)
 })
 
-// This slice contains data related to the state of the app
+// This slice contains data related to discovery mode
 const discoverySlice = createSlice({
   name: 'discovery',
   initialState,

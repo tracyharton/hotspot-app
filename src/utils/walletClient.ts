@@ -14,7 +14,10 @@ const makeRequest = async (url: string, opts: RequestInit) => {
 
     let baseUrl = Config.WALLET_API_BASE_URL
     // TODO: get rid of this
-    if (url.includes('disco') && Config.WALLET_API_BASE_URL_TEST) {
+    if (
+      (url.includes('disco') || url.includes('features')) &&
+      Config.WALLET_API_BASE_URL_TEST
+    ) {
       baseUrl = Config.WALLET_API_BASE_URL_TEST
     }
     const route = [baseUrl, url].join('/')

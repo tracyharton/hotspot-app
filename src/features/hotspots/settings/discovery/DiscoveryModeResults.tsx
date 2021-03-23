@@ -21,6 +21,7 @@ import { useAppDispatch } from '../../../../store/store'
 import { fetchNetworkHotspots } from '../../../../store/networkHotspots/networkHotspotsSlice'
 import { getHotspotDetails } from '../../../../utils/appDataClient'
 import DiscoveryModeResultsCard from './DiscoveryModeResultsCard'
+import { usesMetricSystem } from '../../../../utils/i18n'
 
 type Props = {
   request?: DiscoveryRequest | null
@@ -87,15 +88,19 @@ const DiscoveryModeResults = ({
   const showOverlay = async ({ name, lat, lng, address }: MapSelectDetail) => {
     let distance = ''
     if (hotspot.lat && hotspot.lng) {
-      const haversineDistance = Math.round(
-        haversine({ lat: hotspot.lat, lng: hotspot.lng }, { lat, lng }),
-      )
+      const haversineDistance =
+        haversine({ lat: hotspot.lat, lng: hotspot.lng }, { lat, lng }) / 1000
 
-      // TODO: Convert to locale km or mile
+      const localizedDistance = usesMetricSystem
+        ? haversineDistance
+        : haversineDistance * 0.621371
+      const localizedUnit = usesMetricSystem ? 'km' : 'miles'
+
       distance = t('discovery.results.distance', {
-        distance: haversineDistance,
-        unit: 'm',
+        distance: localizedDistance.toFixed(1),
+        unit: localizedUnit,
       })
+
       const deets = await getHotspotDetails(address)
 
       const rewardScale = deets?.rewardScale

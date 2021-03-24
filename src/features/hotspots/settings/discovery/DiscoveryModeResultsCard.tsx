@@ -1,7 +1,7 @@
-import React, { memo, useMemo } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format } from 'date-fns'
 import { Platform } from 'react-native'
+import { addMinutes } from 'date-fns/esm'
 import Box from '../../../../components/Box'
 import Button from '../../../../components/Button'
 import Card from '../../../../components/Card'
@@ -19,6 +19,7 @@ import Close from '../../../../assets/images/closeModal.svg'
 import DistancePinIco from '../../../../assets/images/distancePin.svg'
 import RewardScaleIco from '../../../../assets/images/rewardsScale.svg'
 import useShareDiscovery from './useShareDiscovery'
+import DateModule from '../../../../utils/DateModule'
 
 type LineItemType = { label: string; value: string }
 const LineItem = ({ label, value }: LineItemType) => (
@@ -55,10 +56,22 @@ const DiscoveryModeResultsCard = ({
 }: Props) => {
   const { t } = useTranslation()
   const { shareResults } = useShareDiscovery(request)
+  const [resultDateStr, setResultDateStr] = useState('')
+
+  useMemo(async () => {
+    if (isPolling || !request) return
+
+    const date = new Date(request.insertedAt)
+    const resultDate = addMinutes(date, DISCOVERY_DURATION_MINUTES)
+    const formatted = await DateModule.formatDate(
+      resultDate.toISOString(),
+      'MMMM d h:mma',
+    )
+    setResultDateStr(formatted)
+  }, [isPolling, request])
 
   const results = useMemo(() => {
     let elapsed = ''
-    let resultTime = ''
     const items: LineItemType[] = [
       {
         label: t('discovery.results.responded'),
@@ -82,12 +95,9 @@ const DiscoveryModeResultsCard = ({
         })
       }
       if (!isPolling) {
-        const date = new Date(request.insertedAt)
-
-        resultTime = format(date, 'MMM dd HH:mm aa')
         items.push({
           label: t('discovery.results.result_time'),
-          value: resultTime,
+          value: resultDateStr,
         })
       }
     }
@@ -104,7 +114,15 @@ const DiscoveryModeResultsCard = ({
         ))}
       </Box>
     )
-  }, [currentTime, isPolling, numResponses, request, requestTime, t])
+  }, [
+    currentTime,
+    isPolling,
+    numResponses,
+    request,
+    requestTime,
+    resultDateStr,
+    t,
+  ])
 
   const searchHeight = 38
   const styles = useMemo(() => {

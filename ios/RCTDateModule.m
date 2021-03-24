@@ -21,7 +21,6 @@ RCT_EXPORT_METHOD(formatDate:(NSString *)dateStr
   [df setTimeZone:[NSTimeZone timeZoneWithAbbreviation:@"UTC"]];
 
   NSDate * date = [df dateFromString: dateStr];
-  [df setLocale: NSLocale.currentLocale];
   [df setLocalizedDateFormatFromTemplate: pattern];
   [df setTimeZone:[NSTimeZone localTimeZone]];
 

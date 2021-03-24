@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList } from 'react-native'
-import { format } from 'date-fns'
 import Text from '../../../../components/Text'
 import Box from '../../../../components/Box'
 import { DiscoveryRequest } from '../../../../store/discovery/discoveryTypes'
@@ -41,13 +40,12 @@ const DiscoveryModeSessionInfo = ({
     (props: ItemType) => {
       const isFirst = props.index === 0
       const isLast = props.index === requests.length - 1
-      const date = new Date(props.item.insertedAt)
       return (
         <DiscoveryModeSessionItem
           isFirst={isFirst}
           isLast={isLast}
           item={props.item}
-          date={format(date, 'MMMM dd HH:mm aa')}
+          date={props.item.insertedAt}
           responseCount={props.item.responses.length}
           onRequestSelected={handleRequestSelected}
         />

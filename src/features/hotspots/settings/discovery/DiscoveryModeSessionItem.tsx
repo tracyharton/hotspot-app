@@ -1,10 +1,12 @@
 import React, { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Chevron from '@assets/images/chevron-right.svg'
+import { useAsync } from 'react-async-hook'
 import Text from '../../../../components/Text'
 import Box from '../../../../components/Box'
 import { DiscoveryRequest } from '../../../../store/discovery/discoveryTypes'
 import TouchableOpacityBox from '../../../../components/TouchableOpacityBox'
+import DateModule from '../../../../utils/DateModule'
 
 type Props = {
   responseCount: number
@@ -23,6 +25,10 @@ const DiscoveryModeSessionItem = ({
   responseCount,
 }: Props) => {
   const { t } = useTranslation()
+  const { result: formattedDate = '' } = useAsync(DateModule.formatDate, [
+    date,
+    'MMMM d h:mma',
+  ])
 
   const handleRequestSelected = useCallback(() => {
     onRequestSelected(item)
@@ -45,7 +51,7 @@ const DiscoveryModeSessionItem = ({
     >
       <Box flex={1}>
         <Text variant="body1" color="black">
-          {date}
+          {formattedDate}
         </Text>
         <Text variant="body2" color="grayText">
           {t('discovery.begin.responses', {

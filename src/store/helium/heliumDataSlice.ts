@@ -15,8 +15,13 @@ export type HeliumDataState = {
   predictedOraclePrices: OraclePrice[]
   currentPrices?: Record<string, number>
   makers?: Maker[]
+  hotspotCount?: number
+  blockTime: number
 }
-const initialState: HeliumDataState = { predictedOraclePrices: [] }
+const initialState: HeliumDataState = {
+  predictedOraclePrices: [],
+  blockTime: 0,
+}
 
 export const fetchBlockHeight = createAsyncThunk<number>(
   'heliumData/blockHeight',
@@ -32,6 +37,10 @@ export const fetchPredictedOraclePrice = createAsyncThunk<OraclePrice[]>(
   'heliumData/predictedOraclePrice',
   async () => getPredictedOraclePrice(),
 )
+
+export const fetchCounts = createAsyncThunk('heliumData/counts', async () => {
+  return { hotspotCount: 26973 }
+})
 
 export const fetchInitialData = createAsyncThunk<HeliumDataState>(
   'heliumData/fetchInitialData',
@@ -83,6 +92,9 @@ const heliumDataSlice = createSlice({
         state.predictedOraclePrices = payload
       },
     )
+    builder.addCase(fetchCounts.fulfilled, (state, { payload }) => {
+      state.hotspotCount = payload.hotspotCount
+    })
   },
 })
 

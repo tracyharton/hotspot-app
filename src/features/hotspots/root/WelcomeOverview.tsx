@@ -7,6 +7,7 @@ import EmojiBlip from '../../../components/EmojiBlip'
 import Text from '../../../components/Text'
 import { RootState } from '../../../store/rootReducer'
 import useCurrency from '../../../utils/useCurrency'
+import HotspotsTicker from './HotspotsTicker'
 
 const TimeOfDayTitle = ({ date }: { date: Date }) => {
   const { t } = useTranslation()
@@ -61,6 +62,7 @@ const WelcomeOverview = () => {
 
   return (
     <Box paddingHorizontal="l">
+      <HotspotsTicker marginBottom="l" />
       <EmojiBlip date={date} />
       <TimeOfDayTitle date={date} />
       <Text
